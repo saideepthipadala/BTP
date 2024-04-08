@@ -3,6 +3,7 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 enum NodeType {
     nn,
@@ -92,7 +93,8 @@ public class Node extends Thread {
 
     @Override
     public void run() {
-        ArrayList<Node> nodes = Main.getAllNodes(); 
+        ArrayList<Node> nodes = Main.getAllNodes();
+        HashMap<byte[], ArrayList<byte[]>> DAG=Main.getDAG(); 
         System.out.println("Node " + nodeId + " is running.");
         // System.out.println("My private Key:" + this.privateKey);
 
@@ -113,11 +115,15 @@ public class Node extends Thread {
                             rangeEnd = 100;
                         }
                        
-                        ReleaseSubTaskEnvelope envelope = ReleaseSubTaskEnvelope.createEnvelope(this, nodes.get(i),
+                        byte[] envelope = ReleaseSubTaskEnvelope.createEnvelope(nodes.get(0), nodes.get(i),
                                 "SquareRootFinding", rangeStart, rangeEnd, 1000);
-                        envelope.processTask("SquareRootFinding");
+                                DAG.put(envelope,null);
+                                System.out.println(DAG);
+
                         envelopeIndex++; 
-                    }
+                    } 
+                    // envelope.processTask("SquareRootFinding");
+
                 }
 
                 break;
