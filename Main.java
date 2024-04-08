@@ -2,20 +2,21 @@ import java.util.ArrayList;
 
 public class Main {
 
-    private static ArrayList<Node> nodeList;
+    // Declare nn1 and cn1 as static variables
+    public static Node nn1;
+    public static Node cn1;
+    public static Node cn2;
+    public static Node cn3;
+    public static Node cn4;
 
     public static void main(String[] args) {
         // Create 4 nodes
-        Node nn1 = new Node("nn1", NodeType.nn);
-        nodeList.add(nn1);
-        Node cn1 = new Node("cn1", NodeType.cn);
-        nodeList.add(cn1);
-        Node cn2 = new Node("cn2", NodeType.cn);
-        nodeList.add(cn2);
-        Node cn3 = new Node("cn3", NodeType.cn);
-        nodeList.add(cn3);
-        Node cn4 = new Node("cn4", NodeType.cn);
-        nodeList.add(cn4);
+        nn1 = new Node("nn1", NodeType.nn);
+        cn1 = new Node("cn1", NodeType.cn);
+        cn2 = new Node("cn2", NodeType.cn);
+        cn3 = new Node("cn3", NodeType.cn);
+        cn4 = new Node("cn4", NodeType.cn);
+
         // Start the nodes
         nn1.setFuncNo(1);
         nn1.start();
@@ -36,5 +37,15 @@ public class Main {
         }
 
         System.out.println("All nodes have finished.");
+    }
+
+    public static ArrayList<Node> getAllNodes() {
+        ArrayList<Node> nodes = new ArrayList<>();
+        nodes.add(nn1);
+        nodes.add(cn1);
+        nodes.add(cn2);
+        nodes.add(cn3);
+        nodes.add(cn4);
+        return nodes;
     }
 }

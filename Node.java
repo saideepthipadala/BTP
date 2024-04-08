@@ -15,8 +15,6 @@ public class Node extends Thread {
     private NodeType nodeType;
     private PrivateKey privateKey;
     private PublicKey publicKey;
-
-    private static String nodeList[] = { "nn1", "cn1", "cn2", "cn3", "cn4" };
     int[][] matrix = {
             { 0, 1, 0, 1, 0 },
             { 1, 0, 1, 0, 0 },
@@ -88,22 +86,40 @@ public class Node extends Thread {
         }
     }
 
-    // private Node getReciever() {
-    //     for (int i = 0; i < matrix[0].length; i++) {
-    //         if (matrix[0][i] == 1) {
+    ArrayList<Node> nodes = new ArrayList<>();
+    
 
-    //         }
-    //     }
-    // }
 
     @Override
     public void run() {
+        ArrayList<Node> nodes = Main.getAllNodes(); 
         System.out.println("Node " + nodeId + " is running.");
-        System.out.println("My private Key:" + this.privateKey);
-        // Simulate some processing or communication here
+        // System.out.println("My private Key:" + this.privateKey);
+
         switch (funcNo) {
             case 1:
-                System.out.println(ReleaseSubTaskEnvelope.releaseSubTask(null, null, nodeId, nodeId, MAX_PRIORITY));
+                int envelopeIndex = 0; 
+                
+                //HAVE TO MAKE IT PARALLEL EXECUTION
+                for (int i = 0; i < nodes.size(); i++) {
+                    if (matrix[0][i] == 1) {
+                        System.out.println("Releasing subtask envelope for " + nodes.get(i).getNodeId());
+                        int rangeStart, rangeEnd;
+                        if (envelopeIndex == 0) { 
+                            rangeStart = 1;
+                            rangeEnd = 50;
+                        } else { 
+                            rangeStart = 51;
+                            rangeEnd = 100;
+                        }
+                       
+                        ReleaseSubTaskEnvelope envelope = ReleaseSubTaskEnvelope.createEnvelope(this, nodes.get(i),
+                                "SquareRootFinding", rangeStart, rangeEnd, 1000);
+                        envelope.processTask("SquareRootFinding");
+                        envelopeIndex++; 
+                    }
+                }
+
                 break;
             case 2:
                 System.out.println("Hello world");
@@ -113,10 +129,11 @@ public class Node extends Thread {
         }
 
         try {
-            Thread.sleep((long) (Math.random() * 1000)); // Simulate some work
+            Thread.sleep((long) (Math.random() * 1000)); 
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         System.out.println("Node " + nodeId + " has finished.");
     }
+
 }
