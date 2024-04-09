@@ -9,25 +9,45 @@ public class Main {
     public static Node cn2;
     public static Node cn3;
     public static Node cn4;
-   public static HashMap<byte[], ArrayList<byte[]>> DAG;
+    public static HashMap<Envelope, ArrayList<Envelope>> DAG;
+
+    public static ArrayList<Node> getAllNodes() {
+        ArrayList<Node> nodes = new ArrayList<>();
+        nodes.add(nn1);
+        nodes.add(cn1);
+        nodes.add(cn2);
+        nodes.add(cn3);
+        nodes.add(cn4);
+        return nodes;
+    }
+
+    public static HashMap<Envelope, ArrayList<Envelope>> getDAG() {
+        return DAG;
+    }
 
     public static void main(String[] args) {
         // Create 4 nodes
         nn1 = new Node("nn1", NodeType.nn);
         cn1 = new Node("cn1", NodeType.cn);
         cn2 = new Node("cn2", NodeType.cn);
-        
         cn3 = new Node("cn3", NodeType.cn);
         cn4 = new Node("cn4", NodeType.cn);
-        DAG=new HashMap<>();
+        DAG = new HashMap<>();
 
         // Start the nodes
         nn1.setFuncNo(1);
         nn1.start();
+        try {
+            nn1.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        cn1.setFuncNo(2);
+        cn3.setFuncNo(2);
         cn1.start();
-        cn2.start();
         cn3.start();
-        cn4.start();
+        // cn2.start();
+        // cn4.start();
 
         // Wait for all nodes to finish
         try {
@@ -42,20 +62,5 @@ public class Main {
 
         System.out.println("All nodes have finished.");
     }
-
-    public static ArrayList<Node> getAllNodes() {
-        ArrayList<Node> nodes = new ArrayList<>();
-        nodes.add(nn1);
-        nodes.add(cn1);
-        nodes.add(cn2);
-        nodes.add(cn3);
-        nodes.add(cn4);
-        return nodes;
-    }
-
-    public static HashMap<byte[], ArrayList<byte[]>> getDAG(){
-        return DAG;
-    }
-
 
 }

@@ -87,55 +87,76 @@ public class Node extends Thread {
         }
     }
 
-    ArrayList<Node> nodes = new ArrayList<>();
-    
-
-
     @Override
     public void run() {
         ArrayList<Node> nodes = Main.getAllNodes();
-        HashMap<byte[], ArrayList<byte[]>> DAG=Main.getDAG(); 
+        HashMap<Envelope, ArrayList<Envelope>> DAG = Main.getDAG();
         System.out.println("Node " + nodeId + " is running.");
         // System.out.println("My private Key:" + this.privateKey);
 
         switch (funcNo) {
             case 1:
-                int envelopeIndex = 0; 
-                
-                //HAVE TO MAKE IT PARALLEL EXECUTION
+                int envelopeIndex = 0;
+
+                // HAVE TO MAKE IT PARALLEL EXECUTION
                 for (int i = 0; i < nodes.size(); i++) {
                     if (matrix[0][i] == 1) {
                         System.out.println("Releasing subtask envelope for " + nodes.get(i).getNodeId());
                         int rangeStart, rangeEnd;
-                        if (envelopeIndex == 0) { 
+                        if (envelopeIndex == 0) {
                             rangeStart = 1;
                             rangeEnd = 50;
-                        } else { 
+                        } else {
                             rangeStart = 51;
                             rangeEnd = 100;
                         }
-                       
-                        byte[] envelope = ReleaseSubTaskEnvelope.createEnvelope(nodes.get(0), nodes.get(i),
+
+                        Envelope envelope = ReleaseSubTaskEnvelope.createEnvelope(nodes.get(0), nodes.get(i),
                                 "SquareRootFinding", rangeStart, rangeEnd, 1000);
-                                DAG.put(envelope,null);
-                                System.out.println(DAG);
+                        DAG.put(envelope, null);
+                        System.out.println(DAG);
 
-                        envelopeIndex++; 
-                    } 
-                    // envelope.processTask("SquareRootFinding");
+                        envelopeIndex++;
+                    }
+                }
+                break;
 
+            case 2:
+                ArrayList<Envelope> keys = new ArrayList<>(DAG.keySet());
+                
+                HashMap<Envelope, ArrayList<Envelope>> newEntries = new HashMap<>();
+
+                // Iterate over the copied key set
+                for (Envelope e : keys) {
+                    if (e.getReceivedBy().getNodeId().equals(nodeId)) {
+                        Node newSender = e.getReceivedBy();
+                        Node newReceiver = e.getSentBy();
+                        try {
+                            // Create a new envelope
+                            Envelope envelope = ComputationEnvelope.createEnvelope(newSender, newReceiver, e);
+                            ArrayList<Envelope> env = new ArrayList<>();
+                            env.add(e);
+
+                            // Add the new entry to the temporary map
+                            newEntries.put(envelope, env);
+                        } catch (Exception e1) {
+                            e1.printStackTrace();
+                        }
+                    }
                 }
 
+                // Merge the new entries with the original DAG
+                DAG.putAll(newEntries);
+                System.out.println(DAG);
                 break;
-            case 2:
-                System.out.println("Hello world");
-                break;
+
+            
             default:
                 break;
         }
 
         try {
-            Thread.sleep((long) (Math.random() * 1000)); 
+            Thread.sleep((long) (Math.random() * 1000));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
