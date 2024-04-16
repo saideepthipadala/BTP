@@ -73,9 +73,6 @@ public class ReleaseSubTaskEnvelope extends Envelope {
             int rangeEnd, long timeForSubTaskCompletion, String encryptedFunctionType, String encryptedRangeStart,
             String encryptedRangeEnd) {
         super(envType, sentBy, receivedBy);
-        // this.functionType = functionType;
-        // this.rangeStart = rangeStart;
-        // this.rangeEnd = rangeEnd;
         this.timeForSubTaskCompletion = timeForSubTaskCompletion;
         this.encryptedFunctionType = encryptedFunctionType;
         this.encryptedRangeStart = encryptedRangeStart;
@@ -87,12 +84,6 @@ public class ReleaseSubTaskEnvelope extends Envelope {
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);
         return cipher.doFinal(data);
     }
-
-    // private static byte[] decryptWithPrivateKey(byte[] encryptedData, PrivateKey privateKey) throws Exception {
-    //     Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-    //     cipher.init(Cipher.DECRYPT_MODE, privateKey);
-    //     return cipher.doFinal(encryptedData);
-    // }
 
     static Envelope createEnvelope(Node sender, Node receiver, String functionType, int rangeStart,
             int rangeEnd, long time) {
@@ -108,6 +99,9 @@ public class ReleaseSubTaskEnvelope extends Envelope {
             byte[] encryptedContent = encryptWithPublicKey(content.toString().getBytes(StandardCharsets.UTF_8),
                     publicKey);
             envelope.setEncryptedContent(Base64.getEncoder().encodeToString(encryptedContent));
+            String sign = Base64.getEncoder()
+                    .encodeToString(generateSignature(sender.getPrivateKey(), publicKey, envelope));
+            envelope.setSign(sign);
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -4,6 +4,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 enum NodeType {
     nn,
@@ -114,8 +115,6 @@ public class Node extends Thread {
                         Envelope envelope = ReleaseSubTaskEnvelope.createEnvelope(nodes.get(0), nodes.get(i),
                                 "SquareRootFinding", rangeStart, rangeEnd, 1000);
                         DAG.put(envelope, null);
-                        System.out.println(DAG);
-
                         envelopeIndex++;
                     }
                 }
@@ -123,7 +122,6 @@ public class Node extends Thread {
 
             case 2:
                 ArrayList<Envelope> keys = new ArrayList<>(DAG.keySet());
-                
                 HashMap<Envelope, ArrayList<Envelope>> newEntries = new HashMap<>();
 
                 // Iterate over the copied key set
@@ -144,23 +142,63 @@ public class Node extends Thread {
                         }
                     }
                 }
-
-                // Merge the new entries with the original DAG
                 DAG.putAll(newEntries);
-                System.out.println(DAG);
                 break;
 
-            
+            case 3:
+                System.out.println("DAG in Case 3 :" + DAG);
+                for (int i = 1; i < matrix.length; i++) {
+                    for (int j = 1; j < matrix.length; j++) {
+                        if (matrix[i][j] == 1) {
+                            System.out.println(nodes.get(i).getNodeId() + ">" + nodes.get(j).getNodeId());
+                        }
+                    }
+                }
+                HashMap<Envelope, ArrayList<Envelope>> updates = new HashMap<>(); // Temporary storage for updates
+
+                for (Map.Entry<Envelope, ArrayList<Envelope>> entry : DAG.entrySet()) {
+                    Envelope envelope = entry.getKey();
+                    ArrayList<Envelope> associatedEnvelopes = entry.getValue();
+
+                    if (envelope.getEnvType() == EnvelopeType.envcs) {
+                        Node newSender = envelope.getReceivedBy();
+                        Node newReciever = envelope.getSentBy();
+                        System.out.println("Envelope with envcs " + envelope);
+                        if (associatedEnvelopes.get(0).getSentBy().equals(nodes.get(1))) {
+                            Envelope e = VerifyReleaseSubTaskEnvelope.createEnvelope(newSender, newReciever,
+                                    envelope, associatedEnvelopes.get(0));
+                            ArrayList<Envelope> env = new ArrayList<>();
+                            env.add(envelope);
+                            updates.put(e, env);
+                        } else {
+                            Envelope e1 = VerifyReleaseSubTaskEnvelope.divideTaskAndCreateEnvelope(newSender,
+                                    nodes.get(4), envelope, associatedEnvelopes.get(0));
+                            Envelope e2 = VerifyReleaseSubTaskEnvelope.divideTaskAndCreateEnvelope(newSender,
+                                    nodes.get(1), envelope, associatedEnvelopes.get(0));
+                            ArrayList<Envelope> env = new ArrayList<>();
+                            System.out.println("Envelope in else : " + envelope);
+                            env.add(envelope);
+                            updates.put(e1, env);
+                            env.clear();
+                            env.add(envelope);
+                            updates.put(e2, env);
+                        }
+                    }
+                }
+                DAG.putAll(updates);
+                System.out.println("DAG after Case 3 execution :" + DAG);
+                break;
             default:
                 break;
         }
 
         try {
-            Thread.sleep((long) (Math.random() * 1000));
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         System.out.println("Node " + nodeId + " has finished.");
+        System.out.println("DAG after " + nodeId + " finished execution: " + DAG);
     }
 
 }

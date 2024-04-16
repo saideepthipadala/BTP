@@ -19,8 +19,6 @@ public class Envelope {
     private String hashOfPrevEnvelope;
     private String EncryptedContent;
 
-    
-
     public Envelope(EnvelopeType envType, Node sentBy, Node receivedBy) {
         this.envType = envType;
         this.sentBy = sentBy;

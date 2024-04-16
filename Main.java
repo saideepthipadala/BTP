@@ -1,5 +1,9 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
@@ -25,7 +29,9 @@ public class Main {
         return DAG;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
+
+        ExecutorService executor = Executors.newCachedThreadPool();
         // Create 4 nodes
         nn1 = new Node("nn1", NodeType.nn);
         cn1 = new Node("cn1", NodeType.cn);
@@ -36,29 +42,53 @@ public class Main {
 
         // Start the nodes
         nn1.setFuncNo(1);
-        nn1.start();
         try {
-            nn1.join();
-        } catch (InterruptedException e) {
+            executor.submit(nn1).get();
+        } catch (InterruptedException | ExecutionException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        // nn1.start();
         cn1.setFuncNo(2);
         cn3.setFuncNo(2);
-        cn1.start();
-        cn3.start();
-        // cn2.start();
-        // cn4.start();
+        executor.submit(cn1);
+        executor.submit(cn3);
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.MINUTES);
 
-        // Wait for all nodes to finish
-        try {
-            nn1.join();
-            cn1.join();
-            cn2.join();
-            cn3.join();
-            cn4.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        executor = Executors.newCachedThreadPool();
+        nn1.setFuncNo(3);
+        executor.submit(nn1);
+
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.MINUTES);
+
+        // cn1.setFuncNo(2);
+        // cn3.setFuncNo(2);
+        // cn1.start();
+        // cn3.start();
+        // try {
+        // cn1.join();
+        // cn3.join();
+        // } catch (Exception e) {
+        // e.printStackTrace();
+        // // TODO: handle exception
+        // }
+        // nn1.setFuncNo(3);
+        // nn1.resume();
+        // // cn2.start();
+        // // cn4.start();
+
+        // // Wait for all nodes to finish
+        // try {
+        // nn1.join();
+        // cn1.join();
+        // cn2.join();
+        // cn3.join();
+        // cn4.join();
+        // } catch (InterruptedException e) {
+        // e.printStackTrace();
+        // }
 
         System.out.println("All nodes have finished.");
     }

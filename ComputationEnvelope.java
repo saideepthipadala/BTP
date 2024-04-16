@@ -2,6 +2,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
@@ -32,6 +33,7 @@ public class ComputationEnvelope extends Envelope {
                     prevEnvelope.getReceivedBy().getPrivateKey());
             String DecryptedContent = new String(decryptedContent, StandardCharsets.UTF_8);
             String[] elements = DecryptedContent.substring(1, DecryptedContent.length() - 1).split(", ");
+            // System.out.println(Arrays.toString(elements));
             ArrayList<Integer> results = new ArrayList<>();
             for (int i = Integer.parseInt(elements[1]); i < Integer.parseInt(elements[2]); i++) {
                 results.add((int) Math.sqrt(i));
@@ -40,10 +42,9 @@ public class ComputationEnvelope extends Envelope {
             byte[] encryptedResult = encryptWithPublicKey(results.toString().getBytes(StandardCharsets.UTF_8),
                     receiver.getPublicKey());
             envelope.setEncryptedContent(Base64.getEncoder().encodeToString(encryptedResult));
-            System.out.println("Encrypted Result in envcs  :" + envelope.getEncryptedContent());
+            // System.out.println("Encrypted Result in envcs  :" + envelope.getEncryptedContent());
             return envelope;
         } catch (Exception e) {
-            System.out.println("Hello world");
             e.printStackTrace();
         }
         return null;
