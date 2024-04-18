@@ -1,3 +1,7 @@
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.UUID;
 
 enum EnvelopeType {
@@ -79,8 +83,12 @@ public class Envelope {
         this.sign = sign;
     }
 
+    @Override
     public String toString() {
-        return this.envType.toString() + this.sentBy.getNodeId() + this.receivedBy.getNodeId();
+        // Assuming receivedBy might be null and you want to include its nodeId if it's
+        // not null.
+        String receivedById = (this.receivedBy != null) ? this.receivedBy.getNodeId() : "";
+        return this.envType.toString() + this.sentBy.getNodeId() + receivedById;
     }
 
     public String getEncryptedContent() {
@@ -89,5 +97,54 @@ public class Envelope {
 
     public void setEncryptedContent(String encryptedContent) {
         EncryptedContent = encryptedContent;
+    }
+
+    private String rootr;
+    private int numL;
+    private ArrayList<String> csL;
+
+    public String getRootr() {
+        return rootr;
+    }
+
+    public void setRootr(String rootr) {
+        this.rootr = rootr;
+    }
+
+    public int getNumL() {
+        return numL;
+    }
+
+    public void setNumL(int numL) {
+        this.numL = numL;
+    }
+
+    public ArrayList<String> getCsL() {
+        return csL;
+    }
+
+    public void setCsL(ArrayList<String> csL) {
+        this.csL = csL;
+    }
+
+    public String calculateHash() {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(this.getEncryptedContent().getBytes(StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Cannot find SHA-256 algorithm", e);
+        }
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : bytes) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1)
+                hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 }

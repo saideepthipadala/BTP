@@ -4,7 +4,10 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 enum NodeType {
     nn,
@@ -91,7 +94,7 @@ public class Node extends Thread {
     @Override
     public void run() {
         ArrayList<Node> nodes = Main.getAllNodes();
-        HashMap<Envelope, ArrayList<Envelope>> DAG = Main.getDAG();
+        LinkedHashMap<Envelope, ArrayList<Envelope>> DAG = Main.getDAG();
         System.out.println("Node " + nodeId + " is running.");
         // System.out.println("My private Key:" + this.privateKey);
 
@@ -106,10 +109,10 @@ public class Node extends Thread {
                         int rangeStart, rangeEnd;
                         if (envelopeIndex == 0) {
                             rangeStart = 1;
-                            rangeEnd = 50;
+                            rangeEnd = 25;
                         } else {
-                            rangeStart = 51;
-                            rangeEnd = 100;
+                            rangeStart = 26;
+                            rangeEnd = 51;
                         }
 
                         Envelope envelope = ReleaseSubTaskEnvelope.createEnvelope(nodes.get(0), nodes.get(i),
@@ -122,7 +125,7 @@ public class Node extends Thread {
 
             case 2:
                 ArrayList<Envelope> keys = new ArrayList<>(DAG.keySet());
-                HashMap<Envelope, ArrayList<Envelope>> newEntries = new HashMap<>();
+                LinkedHashMap<Envelope, ArrayList<Envelope>> newEntries = new LinkedHashMap<>();
 
                 // Iterate over the copied key set
                 for (Envelope e : keys) {
@@ -131,7 +134,7 @@ public class Node extends Thread {
                         Node newReceiver = e.getSentBy();
                         try {
                             // Create a new envelope
-                            Envelope envelope = ComputationEnvelope.createEnvelope(newSender, newReceiver, e);
+                            Envelope envelope = ComputationEnvelopeSubtask.createEnvelope(newSender, newReceiver, e);
                             ArrayList<Envelope> env = new ArrayList<>();
                             env.add(e);
 
@@ -146,15 +149,8 @@ public class Node extends Thread {
                 break;
 
             case 3:
-                System.out.println("DAG in Case 3 :" + DAG);
-                for (int i = 1; i < matrix.length; i++) {
-                    for (int j = 1; j < matrix.length; j++) {
-                        if (matrix[i][j] == 1) {
-                            System.out.println(nodes.get(i).getNodeId() + ">" + nodes.get(j).getNodeId());
-                        }
-                    }
-                }
-                HashMap<Envelope, ArrayList<Envelope>> updates = new HashMap<>(); // Temporary storage for updates
+                LinkedHashMap<Envelope, ArrayList<Envelope>> updates = new LinkedHashMap<>(); // Temporary storage for
+                                                                                              // updates
 
                 for (Map.Entry<Envelope, ArrayList<Envelope>> entry : DAG.entrySet()) {
                     Envelope envelope = entry.getKey();
@@ -162,21 +158,19 @@ public class Node extends Thread {
 
                     if (envelope.getEnvType() == EnvelopeType.envcs) {
                         Node newSender = envelope.getReceivedBy();
-                        Node newReciever = envelope.getSentBy();
-                        System.out.println("Envelope with envcs " + envelope);
-                        if (associatedEnvelopes.get(0).getSentBy().equals(nodes.get(1))) {
-                            Envelope e = VerifyReleaseSubTaskEnvelope.createEnvelope(newSender, newReciever,
+                        // Node newReciever = envelope.getSentBy();
+                        if (envelope.getSentBy().equals(nodes.get(1))) {
+                            Envelope e = VerifyReleaseSubTaskEnvelope.createEnvelope(newSender, nodes.get(2),
                                     envelope, associatedEnvelopes.get(0));
                             ArrayList<Envelope> env = new ArrayList<>();
                             env.add(envelope);
                             updates.put(e, env);
                         } else {
                             Envelope e1 = VerifyReleaseSubTaskEnvelope.divideTaskAndCreateEnvelope(newSender,
-                                    nodes.get(4), envelope, associatedEnvelopes.get(0));
+                                    nodes.get(4), envelope, associatedEnvelopes.get(0), 1);
                             Envelope e2 = VerifyReleaseSubTaskEnvelope.divideTaskAndCreateEnvelope(newSender,
-                                    nodes.get(1), envelope, associatedEnvelopes.get(0));
+                                    nodes.get(1), envelope, associatedEnvelopes.get(0), 2);
                             ArrayList<Envelope> env = new ArrayList<>();
-                            System.out.println("Envelope in else : " + envelope);
                             env.add(envelope);
                             updates.put(e1, env);
                             env.clear();
@@ -187,6 +181,67 @@ public class Node extends Thread {
                 }
                 DAG.putAll(updates);
                 System.out.println("DAG after Case 3 execution :" + DAG);
+                break;
+
+            case 4:
+                System.out.println("Node " + nodeId + "is running case 4");
+                LinkedHashMap<Envelope, ArrayList<Envelope>> updates1 = new LinkedHashMap<>();
+                for (Map.Entry<Envelope, ArrayList<Envelope>> entry : DAG.entrySet()) {
+                    Envelope envelope = entry.getKey();
+                    ArrayList<Envelope> associatedEnvelopes = entry.getValue();
+                    if (envelope.getEnvType() == EnvelopeType.envrv
+                            && envelope.getReceivedBy().getNodeId().equals(nodeId) && associatedEnvelopes != null) {
+                        System.out.println(envelope);
+                        Node newSender = envelope.getReceivedBy();
+                        Node newReciever = envelope.getSentBy();
+                        Envelope e = ComputationEnvelopeSubtask.createCsEnvelope(newSender, newReciever, envelope);
+                        ArrayList<Envelope> env = new ArrayList<>();
+                        env.add(envelope);
+                        updates1.put(e, env);
+                    }
+                }
+                DAG.putAll(updates1);
+                break;
+
+            case 5:
+                System.out.println("Node " + nodeId + " is running case 5");
+                List<Envelope> lastThreeEnvelopes = getLastThreeEnvelopes(DAG);
+                System.out.println(lastThreeEnvelopes);
+                Envelope envelope = ComputationEnvelopeTask.createEnvelope(nodes.get(0),
+                        null, lastThreeEnvelopes);
+                System.out.println(envelope);
+                ArrayList<Envelope> associatedEnvelopes = new ArrayList<>(lastThreeEnvelopes);
+                DAG.put(envelope, associatedEnvelopes);
+                break;
+
+            case 6:
+                System.out.println("Node " + nodeId + " is running case 6");
+                Envelope e1 = ChallengeEnvelope.createEnvelope(this, nodes.get(0));
+                ArrayList<Envelope> en = new ArrayList<>();
+                for (Envelope e : DAG.keySet()) {
+                    if (e.getEnvType() == EnvelopeType.envcm) {
+                        en.add(e);
+                    }
+                }
+                DAG.put(e1, en);
+                break;
+            case 7:
+                System.out.println("Node " + nodeId + " is running case 7");
+                Map<Envelope, ArrayList<Envelope>> newDAG = new LinkedHashMap<>();
+
+                // Collect changes without modifying the original map
+                for (Map.Entry<Envelope, ArrayList<Envelope>> entry : new LinkedHashMap<>(DAG).entrySet()) {
+                    Envelope e = entry.getKey();
+                    if (e.getEnvType() == EnvelopeType.envch) {
+                        Envelope newEnvelope = ProofEnvelope.createEnvelope(nodes.get(0), e.getSentBy());
+                        ArrayList<Envelope> envList = new ArrayList<>();
+                        envList.add(e);
+                        newDAG.put(newEnvelope, envList);
+                    }
+                }
+
+                // Now apply the collected changes
+                DAG.putAll(newDAG);
                 break;
             default:
                 break;
@@ -201,4 +256,22 @@ public class Node extends Thread {
         System.out.println("DAG after " + nodeId + " finished execution: " + DAG);
     }
 
+    private static List<Envelope> getLastThreeEnvelopes(
+            LinkedHashMap<Envelope, ArrayList<Envelope>> dag) {
+        List<Envelope> result = new ArrayList<>();
+
+        if (dag.size() <= 3) {
+            result.addAll(dag.keySet());
+        } else {
+            int startIndex = dag.size() - 3;
+            int i = 0;
+            for (Envelope entry : dag.keySet()) {
+                if (i++ >= startIndex) {
+                    result.add(entry);
+                }
+            }
+        }
+
+        return result;
+    }
 }

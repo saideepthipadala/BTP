@@ -53,17 +53,9 @@ public class VerifyReleaseSubTaskEnvelope extends Envelope {
             // System.out.println(testcase);
             Envelope envelope = new Envelope(EnvelopeType.envrv, Sender, Reciever);
             String f2 = "primeNumber";
-            Object myObject = new Object() {
-                public String test = testcase.toString();
-                public String exec = f2;
-
-                @Override
-                public String toString() {
-                    return test + " " + exec;
-                }
-            };
-            System.out.println("Object is " + myObject.toString());
-            byte[] encryptedContent = encryptWithPublicKey(myObject.toString(), Reciever.getPublicKey());
+            testcase.add(f2);
+            System.out.println("Object is " + testcase.toString());
+            byte[] encryptedContent = encryptWithPublicKey(testcase.toString(), Reciever.getPublicKey());
             String base64Encoded = Base64.getEncoder().encodeToString(encryptedContent);
             envelope.setEncryptedContent(base64Encoded);
             return envelope;
@@ -76,7 +68,7 @@ public class VerifyReleaseSubTaskEnvelope extends Envelope {
     }
 
     public static Envelope divideTaskAndCreateEnvelope(Node Sender, Node Reciever, Envelope prevEnvelope,
-            Envelope linkedEnvelope) {
+            Envelope linkedEnvelope, int num) {
         try {
             String decryptedContent = decryptWithPrivateKey(prevEnvelope.getEncryptedContent(),
                     prevEnvelope.getReceivedBy().getPrivateKey());
@@ -85,28 +77,63 @@ public class VerifyReleaseSubTaskEnvelope extends Envelope {
             String decryptedContentOfEnvelope = decryptWithPrivateKey(linkedEnvelope.getEncryptedContent(),
                     linkedEnvelope.getReceivedBy().getPrivateKey());
             // System.out.println(decryptedContentOfEnvelope);
-            String[] inputs = decryptedContentOfEnvelope.substring(1, decryptedContentOfEnvelope.length() - 1)
-                    .split(", ");
-            ArrayList<String> testcase = new ArrayList<>();
-            testcase.addAll(Arrays.asList(results));
-            testcase.addAll(Arrays.asList(inputs));
-            // System.out.println(testcase);
-            Envelope envelope = new Envelope(EnvelopeType.envrv, Sender, Reciever);
-            String f2 = "primeNumber";
-            // Object myObject = new Object() {
-            //     public String test = testcase.toString();
-            //     public String exec = f2;
+            int halfIndex = results.length / 2;
+            if (num == 1) {
+                String[] inputs = decryptedContentOfEnvelope.substring(1, decryptedContentOfEnvelope.length() - 1)
+                        .split(", ");
+                ArrayList<String> testcase = new ArrayList<>();
+                String firstHalfResult[] = Arrays.copyOfRange(results, 0, halfIndex);
+                testcase.addAll(Arrays.asList(firstHalfResult));
+                System.out.println(
+                        "First Half of the results " + Arrays.toString(Arrays.copyOfRange(results, 0, halfIndex)));
+                inputs[2] = Integer.toString(((Integer.parseInt(inputs[1]) + Integer.parseInt(inputs[2])) / 2));
+                testcase.addAll(Arrays.asList(inputs));
+                System.out.println("testcase " + testcase);
+                Envelope envelope = new Envelope(EnvelopeType.envrv, Sender, Reciever);
+                String f2 = "primeNumber";
+                // Object testcase = new Object() {
+                //     public String test = testcase.toString();
+                //     public String exec = f2;
 
-            //     @Override
-            //     public String toString() {
-            //         return test + " " + exec;
-            //     }
-            // };
-            // System.out.println("Object is " + myObject.toString());
-            // byte[] encryptedContent = encryptWithPublicKey(myObject.toString(), Reciever.getPublicKey());
-            // String base64Encoded = Base64.getEncoder().encodeToString(encryptedContent);
-            // envelope.setEncryptedContent(base64Encoded);
-            return envelope;
+                //     @Override
+                //     public String toString() {
+                //         return test + " " + exec;
+                //     }
+                // };
+                testcase.add(f2);
+                System.out.println("Object is " + testcase.toString());
+                byte[] encryptedContent = encryptWithPublicKey(testcase.toString(),
+                        Reciever.getPublicKey());
+                String base64Encoded = Base64.getEncoder().encodeToString(encryptedContent);
+                envelope.setEncryptedContent(base64Encoded);
+                return envelope;
+            } else {
+                String[] inputs = decryptedContentOfEnvelope.substring(1, decryptedContentOfEnvelope.length() - 1)
+                        .split(", ");
+                ArrayList<String> testcase = new ArrayList<>();
+                String secondHalfResult[] = Arrays.copyOfRange(results, halfIndex, results.length);
+                testcase.addAll(Arrays.asList(secondHalfResult));
+                inputs[1] = Integer.toString(((Integer.parseInt(inputs[1]) + Integer.parseInt(inputs[2])) / 2 + 1));
+                testcase.addAll(Arrays.asList(inputs));
+                System.out.println("testcase " + testcase);
+                String f2 = "primeNumber";
+                // Object testcase = new Object() {
+                //     public String test = testcase.toString();
+                //     public String exec = f2;
+
+                //     @Override
+                //     public String toString() {
+                //         return test + " " + exec;
+                //     }
+                // };
+                testcase.add(f2);
+                Envelope envelope = new Envelope(EnvelopeType.envrv, Sender, Reciever);
+                byte[] encryptedContent = encryptWithPublicKey(testcase.toString(),
+                        Reciever.getPublicKey());
+                String base64Encoded = Base64.getEncoder().encodeToString(encryptedContent);
+                envelope.setEncryptedContent(base64Encoded);
+                return envelope;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             // TODO: handle exception

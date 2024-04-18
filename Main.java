@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -13,7 +15,7 @@ public class Main {
     public static Node cn2;
     public static Node cn3;
     public static Node cn4;
-    public static HashMap<Envelope, ArrayList<Envelope>> DAG;
+    public static LinkedHashMap<Envelope, ArrayList<Envelope>> DAG;
 
     public static ArrayList<Node> getAllNodes() {
         ArrayList<Node> nodes = new ArrayList<>();
@@ -25,70 +27,67 @@ public class Main {
         return nodes;
     }
 
-    public static HashMap<Envelope, ArrayList<Envelope>> getDAG() {
+    public static LinkedHashMap<Envelope, ArrayList<Envelope>> getDAG() {
         return DAG;
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
 
-        ExecutorService executor = Executors.newCachedThreadPool();
-        // Create 4 nodes
-        nn1 = new Node("nn1", NodeType.nn);
-        cn1 = new Node("cn1", NodeType.cn);
-        cn2 = new Node("cn2", NodeType.cn);
-        cn3 = new Node("cn3", NodeType.cn);
-        cn4 = new Node("cn4", NodeType.cn);
-        DAG = new HashMap<>();
-
-        // Start the nodes
-        nn1.setFuncNo(1);
         try {
+            // Group 1 tasks
+            ExecutorService executor = Executors.newCachedThreadPool();
+            nn1 = new Node("nn1", NodeType.nn);
+            cn1 = new Node("cn1", NodeType.cn);
+            cn2 = new Node("cn2", NodeType.cn);
+            cn3 = new Node("cn3", NodeType.cn);
+            cn4 = new Node("cn4", NodeType.cn);
+            DAG = new LinkedHashMap<>();
+
+            // Start nn1 node
+            nn1.setFuncNo(1);
             executor.submit(nn1).get();
+
+            // Start cn1 and cn3 nodes
+            cn1.setFuncNo(2);
+            cn3.setFuncNo(2);
+            executor.submit(cn1).get();
+            executor.submit(cn3).get();
+
+            // Ensure all tasks complete and shutdown this executor
+            executor.shutdown();
+            executor.awaitTermination(1, TimeUnit.MINUTES);
+
+            // Group 2 tasks with new executor
+            executor = Executors.newCachedThreadPool();
+            nn1.setFuncNo(3);
+            executor.submit(nn1).get();
+
+            cn1.setFuncNo(4);
+            cn2.setFuncNo(4);
+            cn4.setFuncNo(4);
+            executor.submit(cn1).get();
+            executor.submit(cn2).get();
+            executor.submit(cn4).get();
+
+            nn1.setFuncNo(5);
+            executor.submit(nn1).get();
+
+            for (Node n : getAllNodes()) {
+                if(n.getNodeType() != NodeType.nn){
+                    n.setFuncNo(6);
+                    executor.submit(n).get();
+                }
+            }
+
+            nn1.setFuncNo(7);
+            executor.submit(nn1).get();
+
+            // Ensure all tasks complete and shutdown this executor
+            executor.shutdown();
+            executor.awaitTermination(1, TimeUnit.MINUTES);
         } catch (InterruptedException | ExecutionException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        // nn1.start();
-        cn1.setFuncNo(2);
-        cn3.setFuncNo(2);
-        executor.submit(cn1);
-        executor.submit(cn3);
-        executor.shutdown();
-        executor.awaitTermination(1, TimeUnit.MINUTES);
-
-        executor = Executors.newCachedThreadPool();
-        nn1.setFuncNo(3);
-        executor.submit(nn1);
-
-        executor.shutdown();
-        executor.awaitTermination(1, TimeUnit.MINUTES);
-
-        // cn1.setFuncNo(2);
-        // cn3.setFuncNo(2);
-        // cn1.start();
-        // cn3.start();
-        // try {
-        // cn1.join();
-        // cn3.join();
-        // } catch (Exception e) {
-        // e.printStackTrace();
-        // // TODO: handle exception
-        // }
-        // nn1.setFuncNo(3);
-        // nn1.resume();
-        // // cn2.start();
-        // // cn4.start();
-
-        // // Wait for all nodes to finish
-        // try {
-        // nn1.join();
-        // cn1.join();
-        // cn2.join();
-        // cn3.join();
-        // cn4.join();
-        // } catch (InterruptedException e) {
-        // e.printStackTrace();
-        // }
 
         System.out.println("All nodes have finished.");
     }
