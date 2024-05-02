@@ -3,11 +3,9 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 enum NodeType {
     nn,
@@ -18,8 +16,15 @@ public class Node extends Thread {
     private String nodeId;
     private int funcNo;
     private NodeType nodeType;
+
+    public void setTrustScore(TrustScore trustScore) {
+        this.trustScore = trustScore;
+    }
+
     private PrivateKey privateKey;
     private PublicKey publicKey;
+    private TrustScore trustScore;
+
     int[][] matrix = {
             { 0, 1, 0, 1, 0 },
             { 1, 0, 1, 0, 0 },
@@ -107,11 +112,11 @@ public class Node extends Thread {
                     if (matrix[0][i] == 1) {
                         int rangeStart, rangeEnd;
                         if (envelopeIndex == 0) {
-                            rangeStart = 5000;
-                            rangeEnd = 7500;
+                            rangeStart = 1;
+                            rangeEnd = 1000;
                         } else {
-                            rangeStart = 7501;
-                            rangeEnd = 10000;
+                            rangeStart = 1000;
+                            rangeEnd = 2000;
                         }
 
                         Envelope envelope = ReleaseSubTaskEnvelope.createEnvelope(nodes.get(0), nodes.get(i),
@@ -146,6 +151,8 @@ public class Node extends Thread {
                         }
                     }
                 }
+                // System.out.println(this.setTrustScore());
+                this.trustScore.setTimelinessSubtaskCompletion(this.trustScore.getTimelinessSubtaskCompletion() + 1);
                 DAG.putAll(newEntries);
                 break;
 
@@ -195,12 +202,13 @@ public class Node extends Thread {
                         Node newReciever = envelope.getSentBy();
                         // System.out.println(envelope.getEncryptedContent());
                         Envelope e = ComputationEnvelopeSubtask.createCsEnvelope(newSender,
-                        newReciever, envelope);
+                                newReciever, envelope);
                         ArrayList<Envelope> env = new ArrayList<>();
                         env.add(envelope);
                         updates1.put(e, env);
                     }
                 }
+                this.trustScore.setTimelinessSubtaskCompletion(this.trustScore.getTimelinessSubtaskCompletion() + 1);
                 DAG.putAll(updates1);
                 break;
 
