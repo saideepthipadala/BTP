@@ -16,6 +16,8 @@ public class MerkleTree {
         this.root = buildTree(leafNodes);
     }
 
+    
+
     private TreeNode buildTree(List<TreeNode> nodes) {
         if (nodes.size() == 1) {
             return nodes.get(0);

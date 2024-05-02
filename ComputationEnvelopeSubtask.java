@@ -10,17 +10,12 @@ import javax.crypto.Cipher;
 
 public class ComputationEnvelopeSubtask extends Envelope {
 
-    private static byte[] encryptWithPublicKey(byte[] data, PublicKey publicKey) throws Exception {
-        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-        return cipher.doFinal(data);
-    }
-
-    private static byte[] encryptWithPublicKey(String data, PublicKey publicKey) throws Exception {
+    private static String encryptWithPublicKey(String data, PublicKey publicKey) throws Exception {
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);
         byte[] byteData = data.getBytes();
-        return cipher.doFinal(byteData);
+        byte[] encryptedData = cipher.doFinal(byteData);
+        return Base64.getEncoder().encodeToString(encryptedData);
     }
 
     public static boolean isPrime(int n, double sqrt) {
@@ -41,10 +36,13 @@ public class ComputationEnvelopeSubtask extends Envelope {
         return true;
     }
 
-    private static byte[] decryptWithPrivateKey(byte[] encryptedData, PrivateKey privateKey) throws Exception {
+    private static String decryptWithPrivateKey(String encryptedData, PrivateKey privateKey) throws Exception {
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
-        return cipher.doFinal(encryptedData);
+        byte[] data = Base64.getDecoder().decode(encryptedData.getBytes());
+        byte[] decrypt = cipher.doFinal(data);
+        String decryptedData = new String(decrypt, StandardCharsets.UTF_8);
+        return decryptedData;
     }
 
     public ComputationEnvelopeSubtask(EnvelopeType envType, Node sentBy, Node receivedBy) {
@@ -52,24 +50,20 @@ public class ComputationEnvelopeSubtask extends Envelope {
     }
 
     public static Envelope createEnvelope(Node sender, Node receiver, Envelope prevEnvelope) {
-        byte[] decryptedContent;
         try {
-            decryptedContent = decryptWithPrivateKey(
-                    Base64.getDecoder().decode(prevEnvelope.getEncryptedContent().getBytes()),
-                    prevEnvelope.getReceivedBy().getPrivateKey());
-            String DecryptedContent = new String(decryptedContent, StandardCharsets.UTF_8);
-            String[] elements = DecryptedContent.substring(1, DecryptedContent.length() - 1).split(", ");
-            // System.out.println(Arrays.toString(elements));
-            ArrayList<Integer> results = new ArrayList<>();
-            for (int i = Integer.parseInt(elements[1]); i <= Integer.parseInt(elements[2]); i++) {
-                results.add((int) Math.sqrt(i));
+            String decryptedString = decryptWithPrivateKey(prevEnvelope.getEncryptedContent(), sender.getPrivateKey());
+            // System.out.println(Arrays.toString(decryptedArray));
+            String decryptedArray[] = decryptedString.substring(1, decryptedString.length() - 1).split(", ");
+            StringBuilder results = new StringBuilder();
+
+            for (int i = Integer.parseInt(decryptedArray[1]); i <= Integer.parseInt(decryptedArray[2]); i++) {
+                String encryptedResult = encryptWithPublicKey(String.valueOf((int) Math.sqrt(i)),
+                        receiver.getPublicKey());
+                results.append(encryptedResult);
+                results.append(" ");
             }
             ComputationEnvelopeSubtask envelope = new ComputationEnvelopeSubtask(EnvelopeType.envcs, sender, receiver);
-            byte[] encryptedResult = encryptWithPublicKey(results.toString().getBytes(StandardCharsets.UTF_8),
-                    receiver.getPublicKey());
-            envelope.setEncryptedContent(Base64.getEncoder().encodeToString(encryptedResult));
-            // System.out.println("Encrypted Result in envcs :" +
-            // envelope.getEncryptedContent());
+            envelope.setEncryptedContent(results.toString());
             return envelope;
         } catch (Exception e) {
             e.printStackTrace();
@@ -78,33 +72,29 @@ public class ComputationEnvelopeSubtask extends Envelope {
     }
 
     public static Envelope createCsEnvelope(Node sender, Node receiver, Envelope prevEnvelope) {
-        byte[] decryptedContent;
+
         try {
-            decryptedContent = decryptWithPrivateKey(
-                    Base64.getDecoder().decode(prevEnvelope.getEncryptedContent().getBytes()),
-                    prevEnvelope.getReceivedBy().getPrivateKey());
-            String DecryptedContent = new String(decryptedContent, StandardCharsets.UTF_8);
-            String trimmedContent = DecryptedContent.substring(1, DecryptedContent.length() - 1);
-            System.out.println(trimmedContent);
-            String[] elements = trimmedContent.split(", ");
-
-            System.out.println("elements are " + Arrays.toString(elements));
-            LinkedHashMap<Integer, Boolean> result = new LinkedHashMap<>();
-            // ArrayList<Boolean> result = new ArrayList<>();
-            int start = Integer.parseInt(elements[elements.length - 3]);
-            int i = 0;
-            int end = Integer.parseInt(elements[elements.length - 2]);
-            while (i < elements.length - 4) {
-                result.put(start, isPrime(start, Integer.parseInt(elements[i])));
-                start++;
-                i++;
+            // System.out.println("Encrypted Content : " +
+            // prevEnvelope.getEncryptedContent());
+            String decryptedarr[] = prevEnvelope.getEncryptedContent().split(" ");
+            // System.out.println(Arrays.toString(decryptedarr));
+            StringBuilder result = new StringBuilder();
+            String decryptedprev = decryptWithPrivateKey(decryptedarr[decryptedarr.length - 2],
+                    sender.getPrivateKey());
+            String arr[] = decryptedprev.substring(1, decryptedprev.length() - 1).split(", ");
+            int start = Integer.parseInt(arr[1]);
+            int end = Integer.parseInt(arr[2]);
+            for (int i = 0; i < decryptedarr.length - 2; i++) {
+                if (start <= end) {
+                    int sqrt = Integer.parseInt(decryptWithPrivateKey(decryptedarr[i], sender.getPrivateKey()));
+                    result.append(encryptWithPublicKey(start + "->" + String.valueOf(isPrime(start, sqrt)),
+                            receiver.getPublicKey()));
+                    start++;
+                    result.append(" ");
+                }
             }
-            System.out.println(result);
-
-            byte[] encryptedContent = encryptWithPublicKey(result.toString(), receiver.getPublicKey());
-            String base64EncodedContent = Base64.getEncoder().encodeToString(encryptedContent);
             Envelope envelope = new Envelope(EnvelopeType.envcs, sender, receiver);
-            envelope.setEncryptedContent(base64EncodedContent);
+            envelope.setEncryptedContent(result.toString());
             return envelope;
         } catch (Exception e) {
             e.printStackTrace();

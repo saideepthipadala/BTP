@@ -105,18 +105,19 @@ public class Node extends Thread {
                 // HAVE TO MAKE IT PARALLEL EXECUTION
                 for (int i = 0; i < nodes.size(); i++) {
                     if (matrix[0][i] == 1) {
-                        System.out.println("Releasing subtask envelope for " + nodes.get(i).getNodeId());
                         int rangeStart, rangeEnd;
                         if (envelopeIndex == 0) {
-                            rangeStart = 1;
-                            rangeEnd = 25;
+                            rangeStart = 5000;
+                            rangeEnd = 7500;
                         } else {
-                            rangeStart = 26;
-                            rangeEnd = 51;
+                            rangeStart = 7501;
+                            rangeEnd = 10000;
                         }
 
                         Envelope envelope = ReleaseSubTaskEnvelope.createEnvelope(nodes.get(0), nodes.get(i),
                                 "SquareRootFinding", rangeStart, rangeEnd, 1000);
+                        System.out.println("Releasing subtask envelope for " + nodes.get(i).getNodeId()
+                                + " to find prime from " + rangeStart + " to " + rangeEnd);
                         DAG.put(envelope, null);
                         envelopeIndex++;
                     }
@@ -180,7 +181,6 @@ public class Node extends Thread {
                     }
                 }
                 DAG.putAll(updates);
-                System.out.println("DAG after Case 3 execution :" + DAG);
                 break;
 
             case 4:
@@ -191,10 +191,11 @@ public class Node extends Thread {
                     ArrayList<Envelope> associatedEnvelopes = entry.getValue();
                     if (envelope.getEnvType() == EnvelopeType.envrv
                             && envelope.getReceivedBy().getNodeId().equals(nodeId) && associatedEnvelopes != null) {
-                        System.out.println(envelope);
                         Node newSender = envelope.getReceivedBy();
                         Node newReciever = envelope.getSentBy();
-                        Envelope e = ComputationEnvelopeSubtask.createCsEnvelope(newSender, newReciever, envelope);
+                        // System.out.println(envelope.getEncryptedContent());
+                        Envelope e = ComputationEnvelopeSubtask.createCsEnvelope(newSender,
+                        newReciever, envelope);
                         ArrayList<Envelope> env = new ArrayList<>();
                         env.add(envelope);
                         updates1.put(e, env);
@@ -206,10 +207,8 @@ public class Node extends Thread {
             case 5:
                 System.out.println("Node " + nodeId + " is running case 5");
                 List<Envelope> lastThreeEnvelopes = getLastThreeEnvelopes(DAG);
-                System.out.println(lastThreeEnvelopes);
                 Envelope envelope = ComputationEnvelopeTask.createEnvelope(nodes.get(0),
                         null, lastThreeEnvelopes);
-                System.out.println(envelope);
                 ArrayList<Envelope> associatedEnvelopes = new ArrayList<>(lastThreeEnvelopes);
                 DAG.put(envelope, associatedEnvelopes);
                 break;
@@ -225,6 +224,7 @@ public class Node extends Thread {
                 }
                 DAG.put(e1, en);
                 break;
+
             case 7:
                 System.out.println("Node " + nodeId + " is running case 7");
                 Map<Envelope, ArrayList<Envelope>> newDAG = new LinkedHashMap<>();

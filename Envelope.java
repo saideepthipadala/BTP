@@ -22,6 +22,7 @@ public class Envelope {
     private String sign;
     private String hashOfPrevEnvelope;
     private String EncryptedContent;
+    private String testcase;
 
     public Envelope(EnvelopeType envType, Node sentBy, Node receivedBy) {
         this.envType = envType;
