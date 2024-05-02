@@ -1,7 +1,5 @@
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +29,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws InterruptedException, ExecutionException {
+        long startTime = System.currentTimeMillis();
 
         try {
             ExecutorService executor = Executors.newCachedThreadPool();
@@ -65,15 +64,15 @@ public class Main {
             nn1.setFuncNo(5);
             executor.submit(nn1).get();
 
-            // for (Node n : getAllNodes()) {
-            //     if (n.getNodeType() != NodeType.nn) {
-            //         n.setFuncNo(6);
-            //         executor.submit(n).get();
-            //     }
-            // }
+            for (Node n : getAllNodes()) {
+                if (n.getNodeType() != NodeType.nn) {
+                    n.setFuncNo(6);
+                    executor.submit(n).get();
+                }
+            }
 
-            // nn1.setFuncNo(7);
-            // executor.submit(nn1).get();
+            nn1.setFuncNo(7);
+            executor.submit(nn1).get();
 
             // Ensure all tasks complete and shutdown this executor
             executor.shutdown();
@@ -83,6 +82,8 @@ public class Main {
         }
 
         System.out.println("All nodes have finished.");
+        long endTime = System.currentTimeMillis();
+        System.out.println("Execution time: " + (endTime - startTime) + "ms");
     }
 
 }
