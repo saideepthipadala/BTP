@@ -260,8 +260,38 @@ public class Node extends Thread {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        System.out.println("Node " + nodeId + " has finished.");
-        System.out.println("DAG after " + nodeId + " finished execution: " + DAG);
+        // Print DAG after node's execution
+        System.out.println("Node " + nodeId + " has finished execution. DAG:");
+        System.out.println(formatDAG(DAG));
+    }
+
+    private String formatDAG(LinkedHashMap<Envelope, ArrayList<Envelope>> DAG) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("{\n");
+
+        for (Map.Entry<Envelope, ArrayList<Envelope>> entry : DAG.entrySet()) {
+            Envelope key = entry.getKey();
+            List<Envelope> value = entry.getValue();
+            stringBuilder.append("  ").append(key).append("=[");
+
+            if (value != null) {
+                for (int i = 0; i < value.size(); i++) {
+                    stringBuilder.append(value.get(i));
+                    if (i < value.size() - 1) {
+                        stringBuilder.append(", ");
+                    }
+                }
+            }
+
+            stringBuilder.append("],\n");
+        }
+
+        if (!DAG.isEmpty()) {
+            stringBuilder.setLength(stringBuilder.length() - 2); // Removing the last ", "
+        }
+
+        stringBuilder.append("\n}");
+        return stringBuilder.toString();
     }
 
     private static List<Envelope> getLastThreeEnvelopes(

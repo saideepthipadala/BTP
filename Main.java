@@ -29,6 +29,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws InterruptedException, ExecutionException {
+        long startTime = System.currentTimeMillis();
 
         try {
 
@@ -100,6 +101,8 @@ public class Main {
         }
 
         System.out.println("All nodes have finished.");
+        long endTime = System.currentTimeMillis();
+        System.out.println("Execution time: " + (endTime - startTime) + "ms");
     }
 
 }
