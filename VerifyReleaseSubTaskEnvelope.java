@@ -76,7 +76,7 @@ public class VerifyReleaseSubTaskEnvelope extends Envelope {
             }
             String decryptedContentOfEnvelope = decryptWithPrivateKey(linkedEnvelope.getEncryptedContent(),
                     linkedEnvelope.getReceivedBy().getPrivateKey());
-            System.out.println(decryptedContentOfEnvelope);
+            // System.out.println(decryptedContentOfEnvelope);
             String arr[] = decryptedContentOfEnvelope.substring(1, decryptedContentOfEnvelope.length() - 1).split(", ");
             int halfIndex = results.size() / 2;
             if (num == 1) {

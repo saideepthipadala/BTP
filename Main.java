@@ -33,7 +33,7 @@ public class Main {
 
         try {
 
-            final long startTime = System.nanoTime();
+            // final long startTime = System.nanoTime();
 
             ExecutorService executor = Executors.newCachedThreadPool();
             nn1 = new Node("nn1", NodeType.nn);
@@ -90,11 +90,11 @@ public class Main {
             executor.shutdown();
             executor.awaitTermination(1, TimeUnit.MINUTES);
 
-            final long endTime = System.nanoTime();
+            // final long endTime = System.nanoTime();
 
-            final long Duration = endTime - startTime;
+            // final long Duration = endTime - startTime;
 
-            System.out.println("Duration: " + Duration);
+            // System.out.println("Duration: " + Duration);
 
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();

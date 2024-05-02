@@ -113,10 +113,10 @@ public class Node extends Thread {
                         int rangeStart, rangeEnd;
                         if (envelopeIndex == 0) {
                             rangeStart = 1;
-                            rangeEnd = 1000;
+                            rangeEnd = 5000;
                         } else {
-                            rangeStart = 1000;
-                            rangeEnd = 2000;
+                            rangeStart = 5001;
+                            rangeEnd = 10000;
                         }
 
                         Envelope envelope = ReleaseSubTaskEnvelope.createEnvelope(nodes.get(0), nodes.get(i),
@@ -261,8 +261,8 @@ public class Node extends Thread {
             e.printStackTrace();
         }
         // Print DAG after node's execution
-        System.out.println("Node " + nodeId + " has finished execution. DAG:");
-        System.out.println(formatDAG(DAG));
+        System.out.println("Node " + nodeId + " has finished execution.");
+        System.out.println("DAG: " + formatDAG(DAG));
     }
 
     private String formatDAG(LinkedHashMap<Envelope, ArrayList<Envelope>> DAG) {
