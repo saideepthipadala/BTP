@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 enum NodeType {
     nn,
@@ -113,10 +114,10 @@ public class Node extends Thread {
                         int rangeStart, rangeEnd;
                         if (envelopeIndex == 0) {
                             rangeStart = 1;
-                            rangeEnd = 5000;
+                            rangeEnd = 1000;
                         } else {
-                            rangeStart = 5001;
-                            rangeEnd = 10000;
+                            rangeStart = 1001;
+                            rangeEnd = 2000;
                         }
 
                         Envelope envelope = ReleaseSubTaskEnvelope.createEnvelope(nodes.get(0), nodes.get(i),
@@ -219,6 +220,7 @@ public class Node extends Thread {
                         null, lastThreeEnvelopes);
                 ArrayList<Envelope> associatedEnvelopes = new ArrayList<>(lastThreeEnvelopes);
                 DAG.put(envelope, associatedEnvelopes);
+                this.trustScore.setTaskcompletion(this.trustScore.getTaskcompletion() + 1);
                 break;
 
             case 6:
@@ -236,8 +238,6 @@ public class Node extends Thread {
             case 7:
                 System.out.println("Node " + nodeId + " is running case 7");
                 Map<Envelope, ArrayList<Envelope>> newDAG = new LinkedHashMap<>();
-
-                // Collect changes without modifying the original map
                 for (Map.Entry<Envelope, ArrayList<Envelope>> entry : new LinkedHashMap<>(DAG).entrySet()) {
                     Envelope e = entry.getKey();
                     if (e.getEnvType() == EnvelopeType.envch) {
@@ -248,9 +248,28 @@ public class Node extends Thread {
                     }
                 }
 
-                // Now apply the collected changes
                 DAG.putAll(newDAG);
                 break;
+
+            case 8:
+                System.out.println("Node " + nodeId + " is running case 8");
+                Random rd = new Random();
+                Map<Envelope, ArrayList<Envelope>> newDAGvt = new LinkedHashMap<>();
+                for (Map.Entry<Envelope, ArrayList<Envelope>> entry : new LinkedHashMap<>(DAG).entrySet()) {
+                    Envelope e = entry.getKey();
+                    ArrayList<Envelope> ar = new ArrayList<>();
+                    if (e.getEnvType() == EnvelopeType.envpr && e.getReceivedBy().getNodeId() == nodeId
+                            && rd.nextBoolean()) {
+                        Envelope newEnvelope = new Envelope(EnvelopeType.envvt, e.getReceivedBy(), nodes.get(0));
+                        ar.add(e);
+                        newDAGvt.put(newEnvelope, ar);
+                        e.getReceivedBy().trustScore.setCorrectnessOfVerificationTask(
+                                e.getReceivedBy().trustScore.getCorrectnessOfVerificationTask() - 1);
+                    }
+                }
+                DAG.putAll(newDAGvt);
+                break;
+
             default:
                 break;
         }

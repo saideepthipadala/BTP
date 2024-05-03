@@ -37,11 +37,11 @@ public class Main {
 
             ExecutorService executor = Executors.newCachedThreadPool();
             nn1 = new Node("nn1", NodeType.nn);
-            TrustScore nn1trust = new TrustScore();
-            nn1.setTrustScore(nn1trust);
+            TrustScore nn1Trust = new TrustScore();
+            nn1.setTrustScore(nn1Trust);
             cn1 = new Node("cn1", NodeType.cn);
-            TrustScore cn1trust = new TrustScore();
-            cn1.setTrustScore(cn1trust);
+            TrustScore cn1Trust = new TrustScore();
+            cn1.setTrustScore(cn1Trust);
             cn2 = new Node("cn2", NodeType.cn);
             TrustScore cn2Trust = new TrustScore();
             cn2.setTrustScore(cn2Trust);
@@ -83,18 +83,26 @@ public class Main {
                 }
             }
 
+        
             nn1.setFuncNo(7);
             executor.submit(nn1).get();
+
+            for(Envelope e:DAG.keySet()){
+                if(e.getEnvType() == EnvelopeType.envpr){
+                    e.getReceivedBy().setFuncNo(8);
+                    executor.submit(e.getReceivedBy());
+                }
+            }
 
             // Ensure all tasks complete and shutdown this executor
             executor.shutdown();
             executor.awaitTermination(1, TimeUnit.MINUTES);
 
-            // final long endTime = System.nanoTime();
-
-            // final long Duration = endTime - startTime;
-
-            // System.out.println("Duration: " + Duration);
+            System.out.println("Trust Score of nn1 = " + nn1Trust.calculateTrustScore());
+            System.out.println("Trust Score of cn1 = " + cn1Trust.calculateTrustScore());
+            System.out.println("Trust Score of cn2 = " + cn2Trust.calculateTrustScore());
+            System.out.println("Trust Score of cn3 = " + cn3Trust.calculateTrustScore());
+            System.out.println("Trust Score of cn4 = " + cn4Trust.calculateTrustScore());
 
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();

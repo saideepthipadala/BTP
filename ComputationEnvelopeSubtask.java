@@ -84,10 +84,18 @@ public class ComputationEnvelopeSubtask extends Envelope {
             for (int i = 0; i < decryptedarr.length - 2; i++) {
                 if (start <= end) {
                     int sqrt = Integer.parseInt(decryptWithPrivateKey(decryptedarr[i], sender.getPrivateKey()));
-                    result.append(encryptWithPublicKey(start + "->" + String.valueOf(isPrime(start, sqrt)),
-                            receiver.getPublicKey()));
+                    boolean primeOrNot = isPrime(start, sqrt);
+                    if (primeOrNot) {
+                        result.append(encryptWithPublicKey(start + "->" +
+                                String.valueOf(isPrime(start, sqrt)),
+                                receiver.getPublicKey()));
+                        result.append(" ");
+                    }
+                    // result.append(encryptWithPublicKey(start + "->" +
+                    // String.valueOf(isPrime(start, sqrt)),
+                    // receiver.getPublicKey()));
+                    // result.append(" ");
                     start++;
-                    result.append(" ");
                 }
             }
             Envelope envelope = new Envelope(EnvelopeType.envcs, sender, receiver);

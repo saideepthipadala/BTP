@@ -33,7 +33,7 @@ public class ComputationEnvelopeTask extends Envelope {
                 for (int i = 0; i < decryptedArr.length; i++) {
                     String decryptedContent = decryptWithPrivateKey(decryptedArr[i],
                             e.getReceivedBy().getPrivateKey());
-                    // System.out.println("Decrypted Content:" + decryptedContent);
+                    System.out.println("Decrypted Content:" + decryptedContent);
                     results.add(decryptedContent);
                 }
 
@@ -43,12 +43,12 @@ public class ComputationEnvelopeTask extends Envelope {
                 e1.printStackTrace();
             }
         }
-        MerkleTree tree = new MerkleTree(results);
+        // MerkleTree tree = new MerkleTree(results);
         Envelope envelope = new Envelope(EnvelopeType.envcm, Sender, null);
-        envelope.setRootr(tree.getRootHash());
-        envelope.setNumL(rRes.size());
-        envelope.setCsL(hashes);
-        System.out.println(tree.getRootHash());
+        // envelope.setRootr(tree.getRootHash());
+        // envelope.setNumL(rRes.size());
+        // envelope.setCsL(hashes);
+        // System.out.println(tree.getRootHash());
         return envelope;
     }
 }
