@@ -33,7 +33,7 @@ public class ComputationEnvelopeTask extends Envelope {
                 for (int i = 0; i < decryptedArr.length; i++) {
                     String decryptedContent = decryptWithPrivateKey(decryptedArr[i],
                             e.getReceivedBy().getPrivateKey());
-                    System.out.println("Decrypted Content:" + decryptedContent);
+                    // System.out.println("Decrypted Content:" + decryptedContent);
                     results.add(decryptedContent);
                 }
 

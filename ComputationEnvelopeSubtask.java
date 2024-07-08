@@ -1,6 +1,7 @@
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
@@ -46,22 +47,41 @@ public class ComputationEnvelopeSubtask extends Envelope {
         super(envType, sentBy, receivedBy);
     }
 
-    public static Envelope createEnvelope(Node sender, Node receiver, Envelope prevEnvelope) {
+    public static Envelope createEnvelope(Node sender, Node receiver, Envelope prevEnvelope, String functiontype) {
         try {
             String decryptedString = decryptWithPrivateKey(prevEnvelope.getEncryptedContent(), sender.getPrivateKey());
             // System.out.println(Arrays.toString(decryptedArray));
             String decryptedArray[] = decryptedString.substring(1, decryptedString.length() - 1).split(", ");
             StringBuilder results = new StringBuilder();
+            // System.out.println(Arrays.toString(decryptedArray));
+            if (functiontype.equals("sqrt")) {
+                for (int i = Integer.parseInt(decryptedArray[1]); i <= Integer.parseInt(decryptedArray[2]); i++) {
+                    String encryptedResult = encryptWithPublicKey(String.valueOf((int) Math.sqrt(i)),
+                            receiver.getPublicKey());
+                    results.append(encryptedResult);
+                    results.append(" ");
+                }
+                ComputationEnvelopeSubtask envelope = new ComputationEnvelopeSubtask(EnvelopeType.envcs, sender,
+                        receiver);
+                envelope.setEncryptedContent(results.toString());
+                return envelope;
+            } else {
+                for (int i = Integer.parseInt(decryptedArray[1]); i <= Integer.parseInt(decryptedArray[2]); i++) {
+                    Boolean TorF = isPrime(i, (int) Math.sqrt(i));
+                    String res = String.valueOf(i) + "->" + String.valueOf(TorF);
+                    System.out.println(res);
+                    String encryptedResult = encryptWithPublicKey(res,
+                            receiver.getPublicKey());
 
-            for (int i = Integer.parseInt(decryptedArray[1]); i <= Integer.parseInt(decryptedArray[2]); i++) {
-                String encryptedResult = encryptWithPublicKey(String.valueOf((int) Math.sqrt(i)),
-                        receiver.getPublicKey());
-                results.append(encryptedResult);
-                results.append(" ");
+                    results.append(encryptedResult);
+                    results.append(" ");
+                }
+                ComputationEnvelopeSubtask envelope = new ComputationEnvelopeSubtask(EnvelopeType.envcs, sender,
+                        receiver);
+                envelope.setEncryptedContent(results.toString());
+                return envelope;
             }
-            ComputationEnvelopeSubtask envelope = new ComputationEnvelopeSubtask(EnvelopeType.envcs, sender, receiver);
-            envelope.setEncryptedContent(results.toString());
-            return envelope;
+
         } catch (Exception e) {
             e.printStackTrace();
         }

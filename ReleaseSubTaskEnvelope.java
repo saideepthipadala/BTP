@@ -1,7 +1,5 @@
 import java.security.*;
-import java.security.spec.*;
 import javax.crypto.*;
-import javax.crypto.spec.*;
 
 import java.util.ArrayList;
 import java.util.Base64;
