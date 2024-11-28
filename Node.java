@@ -1,15 +1,23 @@
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import it.unisa.dia.gas.jpbc.Element;
+import it.unisa.dia.gas.jpbc.Pairing;
+import javax.crypto.Cipher;
 
 enum NodeType {
     nn,
@@ -26,14 +34,16 @@ public class Node extends Thread {
     private PublicKey publicKey;
     private TrustScore trustScore;
     private int[][] matrix;
+    private ExecutorService executor;
 
     public Node(String nodeId) {
         this.nodeId = nodeId;
     }
 
-    public Node(String nodeId, NodeType nodeType) {
+    public Node(String nodeId, NodeType nodeType, ExecutorService executor) {
         this.nodeId = nodeId;
         this.nodeType = nodeType;
+        this.executor = executor;
         generateKeyPair();
     }
 
@@ -121,6 +131,96 @@ public class Node extends Thread {
         }
     }
 
+    private Envelope getLastEnvelope(LinkedHashMap<Envelope, ArrayList<Envelope>> DAG) {
+        Envelope lastEnvelope = null;
+        for (Envelope envelope : DAG.keySet()) {
+            lastEnvelope = envelope;
+        }
+        return lastEnvelope;
+    }
+
+    private static String decryptWithPrivateKey(String encryptedData, PrivateKey privateKey) {
+        try {
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            cipher.init(Cipher.DECRYPT_MODE, privateKey);
+            String[] parts = encryptedData.split("\\|");
+            StringBuilder decryptedResult = new StringBuilder();
+
+            for (String part : parts) {
+                byte[] data = Base64.getDecoder().decode(part.trim());
+                byte[] decrypt = cipher.doFinal(data);
+                decryptedResult.append(new String(decrypt, StandardCharsets.UTF_8)).append(" ");
+            }
+
+            return decryptedResult.toString().trim();
+        } catch (IllegalArgumentException e) {
+            System.err.println("Error decoding Base64 string: " + e.getMessage());
+            return null;
+        } catch (Exception e) {
+            System.err.println("Error during decryption: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public static boolean verifyEnvelope(ComputationEnvelopeSubtask envelope) {
+        String[] proofs = envelope.getProof().split("\\|");
+        Pairing pairing = envelope.getPairings();
+        Element g1 = envelope.getG1();
+        Element g2 = envelope.getG2();
+        Element publicKey = envelope.getPublicKey();
+
+
+        for (int i = 0; i < proofs.length; i++) {
+            String proof = proofs[i];
+            String[] parts = proof.split("->Signature:");
+            if (parts.length != 2) {
+                System.out.println("Invalid proof format for proof " + (i + 1));
+                return false;
+            }
+
+            int number = Integer.parseInt(parts[0]);
+            String encodedSignature = parts[1];
+
+            try {
+                // Decode the signature
+                byte[] signatureBytes = Base64.getDecoder().decode(encodedSignature);
+                Element signature = pairing.getG1().newElementFromBytes(signatureBytes);
+
+                // Hash the number
+                byte[] numberBytes = Integer.toString(number).getBytes(StandardCharsets.UTF_8);
+                Element hashedNumber = pairing.getG1().newElementFromHash(numberBytes, 0, numberBytes.length);
+
+                // Verify the pairing
+                Element leftSide = pairing.pairing(signature, g2);
+                Element rightSide = pairing.pairing(hashedNumber, publicKey);
+
+                if (!leftSide.isEqual(rightSide)) {
+                    System.out.println("Proof verification failed for number: " + number);
+                    return false;
+                }
+
+                // System.out.println("Proof " + (i + 1) + " verified successfully");
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+                // System.out.println("Base64 decoding failed for proof " + (i + 1) + ": " +
+                // e.getMessage());
+                // System.out.println("Problematic encoded signature: " + encodedSignature);
+                // // Instead of returning false, we'll skip this proof and continue with the
+                // next
+                // // one
+                // continue;
+            } catch (Exception e) {
+                System.out.println("Error verifying proof " + (i + 1) + ": " + e.getMessage());
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+
     @Override
     public void run() {
         ThreadMXBean bean = ManagementFactory.getThreadMXBean();
@@ -130,33 +230,53 @@ public class Node extends Thread {
         LinkedHashMap<Envelope, ArrayList<Envelope>> DAG = Main.getDAG();
         System.out.println("Node " + nodeId + " is running.");
 
-        int tasksize = 9000;
+        int tasksize = 10000;
         switch (funcNo) {
             case 1:
                 System.out.println("Executing case 1:");
                 Node sender = getNodeById(this.nodeId, nodes);
                 ArrayList<Node> li = new ArrayList<>();
+
                 for (int i = 0; i < matrix[0].length; i++) {
-                    if (matrix[0][i] == 1) {
-                        li.add(nodes[i]);
+                    for (int j = 0; j < matrix.length; j++) {
+                        if (matrix[i][j] == 1 && i != matrix.length - 1) {
+                            li.add(nodes[j]);
+                        }
                     }
                 }
+
                 int rangeStart = 1;
                 int rangeEnd = tasksize;
                 int count = li.size();
                 int subRangeSize = (rangeEnd - rangeStart + 1) / count;
                 int index = 0;
 
+
                 for (Node receiver : li) {
                     int subRangeStart = rangeStart + index * subRangeSize;
                     int subRangeEnd = (index == count - 1) ? rangeEnd : subRangeStart + subRangeSize - 1;
+
                     Envelope envelope = ReleaseSubTaskEnvelope.createEnvelope(sender, receiver,
-                            "SquareRootFinding", subRangeStart, subRangeEnd, 1000);
-                    System.out.println(
-                            "Releasing subtask envelope for " + this.nodeId
-                                    + " to find prime from " + subRangeStart + " to " + subRangeEnd + " with receiver "
-                                    + receiver.getNodeId());
-                    DAG.put(envelope, null);
+                            "primalityTest", subRangeStart, subRangeEnd, 1000);
+                    System.out.println("Releasing subtask envelope for " + this.nodeId
+                            + " to find prime from " + subRangeStart + " to " + subRangeEnd + " with receiver "
+                            + receiver.getNodeId());
+
+                    Envelope previousEnvelope = getLastEnvelope(DAG);
+                    System.out.println("Previous Envelope: " + previousEnvelope);
+
+                    ArrayList<Envelope> envelopeList = new ArrayList<>();
+                    if (previousEnvelope != null) {
+                        envelopeList.add(previousEnvelope);
+                    }
+
+                    DAG.put(envelope, envelopeList.isEmpty() ? null : envelopeList);
+                    receiver.setFuncNo(2);
+                    try {
+                        executor.submit(receiver).get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                    }
                     index++;
                 }
                 break;
@@ -165,142 +285,53 @@ public class Node extends Thread {
                 System.out.println("Executing case 2:");
                 ArrayList<Envelope> keys = new ArrayList<>(DAG.keySet());
                 LinkedHashMap<Envelope, ArrayList<Envelope>> newEntries = new LinkedHashMap<>();
-                String functionType = this.getFunctionType();
-                System.out.println(functionType);
+                System.out.println("keys: " + keys);
+                System.out.println("nodeId: " + this.nodeId);
                 for (Envelope e : keys) {
                     if (e.getReceivedBy().getNodeId().equals(nodeId)) {
                         Node newSender = e.getReceivedBy();
                         Node newReceiver = e.getSentBy();
-                        try {
-                            Envelope envelope = ComputationEnvelopeSubtask.createEnvelope(newSender, newReceiver, e,
-                                    functionType);
-                            ArrayList<Envelope> env = new ArrayList<>();
-                            env.add(e);
-                            newEntries.put(envelope, env);
-                        } catch (Exception e1) {
-                            e1.printStackTrace();
+                        System.out.println(DAG.toString());
+                        ArrayList<Envelope> previousEnvelopes = DAG.get(e);
+                        // System.out.println("previous Envelopes " + previousEnvelopes);
+                        if (previousEnvelopes != null && !previousEnvelopes.isEmpty()) {
+
+                            Envelope lastEnvelope = previousEnvelopes.get(0);
+                            if (lastEnvelope != null && lastEnvelope instanceof ComputationEnvelopeSubtask) {
+                                ComputationEnvelopeSubtask en = (ComputationEnvelopeSubtask) lastEnvelope;
+                                Boolean bool = verifyEnvelope(en);
+                                if(bool){
+                                    System.out.println("Verified proof of result by " + en.getSentBy().getNodeId());
+                                }
+                                // System.out.println("Proof verification " + bool);
+                                try {
+                                    Envelope newEnvelope = ComputationEnvelopeSubtask.createCsEnvelope(newSender,
+                                            newReceiver, e);
+                                    ArrayList<Envelope> env = new ArrayList<>();
+                                    env.add(e);
+                                    newEntries.put(newEnvelope, env);
+                                } catch (Exception e1) {
+                                    e1.printStackTrace();
+                                }
+                            }
+                        } else {
+                            System.out
+                                    .println("No previous envelope found for this node. Proceeding with new subtask.");
+                            try {
+                                Envelope newEnvelope = ComputationEnvelopeSubtask.createCsEnvelope(newSender,
+                                        newReceiver, e);
+                                ArrayList<Envelope> env = new ArrayList<>();
+                                env.add(e);
+                                newEntries.put(newEnvelope, env);
+                            } catch (Exception e1) {
+                                e1.printStackTrace();
+                            }
                         }
                     }
                 }
+
                 DAG.putAll(newEntries);
-                break;
-
-            case 3:
-                System.out.println("Executing case 3:");
-                LinkedHashMap<Envelope, ArrayList<Envelope>> updates = new LinkedHashMap<>();
-                for (Map.Entry<Envelope, ArrayList<Envelope>> entry : DAG.entrySet()) {
-                    Envelope envelope = entry.getKey();
-                    ArrayList<Envelope> associatedEnvelopes = entry.getValue();
-                    if (envelope.getEnvType() == EnvelopeType.envcs) {
-                        Node envSentBy = envelope.getSentBy();
-                        int indexOfNode = getNodeIndexById(envSentBy.getNodeId(), nodes);
-//                        System.out.println("index of node " + indexOfNode);
-                        int noOfOnes = 0;
-                        HashSet<Node> set1 = new HashSet<>();
-                        for (int i = 1; i < matrix[indexOfNode].length; i++) {
-                            if (matrix[indexOfNode][i] == 1) {
-                                set1.add(nodes[i]);
-                                noOfOnes++;
-                            }
-                        }
-                        for (Node n : set1) {
-                            System.out.println(n.getNodeId());
-                        }
-                        Node newSender = envelope.getReceivedBy();
-//                        System.out.println(newSender.getNodeType());
-                        for (Node receiver : set1) {
-                            List<Envelope> envelopes = VerifyReleaseSubTaskEnvelope.createEnvelopeBasedOnOnes(newSender,
-                                    receiver, envelope,
-                                    associatedEnvelopes.get(0), noOfOnes);
-                            for (Envelope e : envelopes) {
-                                ArrayList<Envelope> envList = new ArrayList<>();
-                                envList.add(associatedEnvelopes.get(0));
-                                updates.put(e, envList);
-                            }
-                        }
-                    }
-                }
-                DAG.putAll(updates);
-                break;
-
-            case 4:
-                System.out.println("Node " + nodeId + " is running case 4");
-                LinkedHashMap<Envelope, ArrayList<Envelope>> updates1 = new LinkedHashMap<>();
-                for (Map.Entry<Envelope, ArrayList<Envelope>> entry : DAG.entrySet()) {
-                    Envelope envelope = entry.getKey();
-                    ArrayList<Envelope> associatedEnvelopes = entry.getValue();
-                    if (envelope.getEnvType() == EnvelopeType.envrv
-                            && envelope.getReceivedBy().getNodeId().equals(nodeId) && associatedEnvelopes != null) {
-                        Node newSender = envelope.getReceivedBy();
-                        Node newReceiver = envelope.getSentBy();
-                        Envelope e = ComputationEnvelopeSubtask.createCsEnvelope(newSender, newReceiver, envelope);
-                        ArrayList<Envelope> env = new ArrayList<>();
-                        env.add(envelope);
-                        updates1.put(e, env);
-                    }
-                }
-                DAG.putAll(updates1);
-                break;
-
-            case 5:
-                System.out.println("Node " + nodeId + " is running case 5");
-                int countOfOnes = 0;
-                for (int i = 0; i < matrix.length; i++) {
-                    if (matrix[i][0] == 1) {
-                        countOfOnes++;
-                    }
-                }
-                List<Envelope> lastNEnvcs = getLastNEnvcs(DAG, countOfOnes);
-                System.out.println(lastNEnvcs);
-                Envelope envelope = ComputationEnvelopeTask.createEnvelope(nodes[0], null, lastNEnvcs);
-                ArrayList<Envelope> associatedEnvelopes = new ArrayList<>(lastNEnvcs);
-                DAG.put(envelope, associatedEnvelopes);
-                break;
-
-            case 6:
-                System.out.println("Node " + nodeId + " is running case 6");
-                Envelope e1 = ChallengeEnvelope.createEnvelope(this, nodes[0]);
-                ArrayList<Envelope> en = new ArrayList<>();
-                for (Envelope e : DAG.keySet()) {
-                    if (e.getEnvType() == EnvelopeType.envcm) {
-                        en.add(e);
-                    }
-                }
-                DAG.put(e1, en);
-                break;
-
-            case 7:
-                System.out.println("Node " + nodeId + " is running case 7");
-                Map<Envelope, ArrayList<Envelope>> newDAG = new LinkedHashMap<>();
-                for (Map.Entry<Envelope, ArrayList<Envelope>> entry : new LinkedHashMap<>(DAG).entrySet()) {
-                    Envelope e = entry.getKey();
-                    if (e.getEnvType() == EnvelopeType.envch) {
-                        Envelope newEnvelope = ProofEnvelope.createEnvelope(nodes[0], e.getSentBy());
-                        ArrayList<Envelope> envList = new ArrayList<>();
-                        envList.add(e);
-                        newDAG.put(newEnvelope, envList);
-                    }
-                }
-                DAG.putAll(newDAG);
-                break;
-
-            case 8:
-                System.out.println("Node " + nodeId + " is running case 8");
-                Random rd = new Random();
-                Map<Envelope, ArrayList<Envelope>> newDAGvt = new LinkedHashMap<>();
-                for (Map.Entry<Envelope, ArrayList<Envelope>> entry : new LinkedHashMap<>(DAG).entrySet()) {
-                    Envelope e = entry.getKey();
-                    ArrayList<Envelope> ar = new ArrayList<>();
-                    if (e.getEnvType() == EnvelopeType.envpr && e.getReceivedBy().getNodeId() == nodeId
-                            && rd.nextBoolean()) {
-                        Envelope newEnvelope = new Envelope(EnvelopeType.envvt, e.getReceivedBy(), nodes[0]);
-                        ar.add(e);
-                        newDAGvt.put(newEnvelope, ar);
-                        e.getReceivedBy().trustScore.setCorrectnessOfVerificationTask(
-                                e.getReceivedBy().trustScore.getCorrectnessOfVerificationTask() - 1);
-                    }
-                }
-                DAG.putAll(newDAGvt);
+                System.out.println("DAG: " + formatDAG(DAG));
                 break;
 
             default:

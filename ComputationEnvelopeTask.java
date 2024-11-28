@@ -24,31 +24,22 @@ public class ComputationEnvelopeTask extends Envelope {
     public static Envelope createEnvelope(Node Sender, Node Reciever,
             List<Envelope> rRes) {
         List<String> results = new ArrayList<>();
-        // StringBuilder results = new StringBuilder();
         ArrayList<String> hashes = new ArrayList<>();
         for (Envelope e : rRes) {
-            // System.out.println("Encrypted Content:" + e.getEncryptedContent());
             try {
                 String decryptedArr[] = e.getEncryptedContent().split(" ");
                 for (int i = 0; i < decryptedArr.length; i++) {
                     String decryptedContent = decryptWithPrivateKey(decryptedArr[i],
                             e.getReceivedBy().getPrivateKey());
-                    // System.out.println("Decrypted Content:" + decryptedContent);
                     results.add(decryptedContent);
                 }
-
                 hashes.add(e.calculateHash());
             } catch (Exception e1) {
                 // TODO Auto-generated catch block
                 e1.printStackTrace();
             }
         }
-        // MerkleTree tree = new MerkleTree(results);
         Envelope envelope = new Envelope(EnvelopeType.envcm, Sender, null);
-        // envelope.setRootr(tree.getRootHash());
-        // envelope.setNumL(rRes.size());
-        // envelope.setCsL(hashes);
-        // System.out.println(tree.getRootHash());
         return envelope;
     }
 }

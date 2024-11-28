@@ -91,7 +91,7 @@ public class ReleaseSubTaskEnvelope extends Envelope {
             // Encrypt functionType, rangeStart, and rangeEnd before creating the envelope
             PublicKey publicKey = receiver.getPublicKey();
             ArrayList<String> content = new ArrayList<>();
-            content.add(functionType);
+            // content.add(functionType);
             content.add(String.valueOf(rangeStart));
             content.add(String.valueOf(rangeEnd));
             byte[] encryptedContent = encryptWithPublicKey(content.toString().getBytes(StandardCharsets.UTF_8),

@@ -76,6 +76,8 @@ public class Envelope {
         return uuid.toString();
     }
 
+    
+
     public String getSign() {
         return sign;
     }
